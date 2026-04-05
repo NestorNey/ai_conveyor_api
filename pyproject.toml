@@ -1,0 +1,31 @@
+[project]
+name = "control-dispositivos-api"
+version = "1.0.0"
+description = "API para gestionar Servos y Motores Reductores con GPIO"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Josnes Dev" }
+]
+
+dependencies = [
+    "fastapi==0.109.0",
+    "uvicorn[standard]==0.27.0",
+    "sqlalchemy>=2.0.25",
+    "pydantic==2.9.0",
+    "python-multipart==0.0.6",
+    "requests==2.31.0",
+    "gpiozero>=2.0.0",
+    "picamera2>=0.3",
+    "opencv-python>=4.8.0",
+    "numpy>=1.20.0",
+    "josneslib",
+    "rpi-lgpio>=0.6",
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv.sources]
+josneslib = { path = "../ai_conveyor_lib", editable = true }

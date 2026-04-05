@@ -1,0 +1,17 @@
+[Unit]
+Description=Control de Dispositivos API - Servo y Motor Reductor
+After=network.target
+
+[Service]
+Type=simple
+User=josnes
+WorkingDirectory=/home/josnes/dev/prueba_cervos
+Environment="PATH=/home/josnes/dev/prueba_cervos/env/bin"
+ExecStart=/home/josnes/dev/prueba_cervos/env/bin/uvicorn src.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
