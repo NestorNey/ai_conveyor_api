@@ -1,15 +1,25 @@
+import gc
+import logging
+import os
+
 from src import database
 
 from gpiozero import Servo, Device
-import logging
-import gc
+from gpiozero.pins.lgpio import LGPIOFactory 
 
 from time import sleep
 
 from josneslib import Flow, FlowRunner
-from josneslib.devices import MotorL298N, Picamera2Wrapper
+from josneslib.devices import (
+    MotorL298N, Picamera2Wrapper, 
+    PicoI2CMotor, PicoI2CServo,
+    Esp32SerialMotor, Esp32SerialServo
+)
 
 logger = logging.getLogger(__name__)
+
+os.environ['GPIOZERO_PIN_FACTORY'] = 'lgpio'
+Device.pin_factory = LGPIOFactory()
 
 def _reset_gpio_pins():
     """
@@ -38,11 +48,10 @@ class StartFlowUseCase:
             
             # Detener flow anterior si existe
             if database.flow_running is not None:
+                print("⚠️ Deteniendo flow anterior antes de iniciar uno nuevo...")
                 database.flow_running.stop()
                 database.flow_running = None
-                import gc
-                gc.collect()
-                sleep(0.5) # <--- Dale medio segundo real al hardware para resetearse
+                sleep(1)
                         
             # Resetear pines GPIO para evitar conflictos
             logger.debug("[StartFlowUseCase] Reseteando pines GPIO")
@@ -52,7 +61,11 @@ class StartFlowUseCase:
             device_map = {
                 "Servo": Servo,
                 "MotorL298N": MotorL298N,
-                "Picamera2": Picamera2Wrapper  # ← Usa el wrapper con constructor compatible
+                "Picamera2": Picamera2Wrapper,  # ← Usa el wrapper con constructor compatible
+                "PicoI2CMotor": PicoI2CMotor,
+                "PicoI2CServo": PicoI2CServo,
+                "Esp32SerialMotor": Esp32SerialMotor,
+                "Esp32SerialServo": Esp32SerialServo
             }
             logger.debug(f"[StartFlowUseCase] Device map configurado: {list(device_map.keys())}")
             
