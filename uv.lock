@@ -355,6 +355,7 @@ dependencies = [
     { name = "opencv-python" },
     { name = "picamera2" },
     { name = "pydantic" },
+    { name = "pyserial" },
     { name = "python-multipart" },
     { name = "requests" },
     { name = "rpi-lgpio" },
@@ -371,6 +372,7 @@ requires-dist = [
     { name = "opencv-python", specifier = ">=4.8.0" },
     { name = "picamera2", specifier = ">=0.3" },
     { name = "pydantic", specifier = "==2.9.0" },
+    { name = "pyserial", specifier = ">=3.5" },
     { name = "python-multipart", specifier = "==0.0.6" },
     { name = "requests", specifier = "==2.31.0" },
     { name = "rpi-lgpio", specifier = ">=0.6" },
@@ -1360,6 +1362,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ea/b7/4abd0b2152490e15a2b68b4fc31bde3325819ee83be0995fb7fc44ccb109/pydantic_core-2.23.2-pp39-pypy39_pp73-musllinux_1_1_aarch64.whl", hash = "sha256:a8031074a397a5925d06b590121f8339d34a5a74cfe6970f8a1124eb8b83f4ac", size = 1959645, upload-time = "2024-09-05T15:20:14.555Z" },
     { url = "https://files.pythonhosted.org/packages/4a/c9/6ce837055553ccfc1ccc495fd634518fa0e7d35d49bc00cfabfef83de52c/pydantic_core-2.23.2-pp39-pypy39_pp73-musllinux_1_1_x86_64.whl", hash = "sha256:23af245b8f2f4ee9e2c99cb3f93d0e22fb5c16df3f2f643f5a8da5caff12a653", size = 2103264, upload-time = "2024-09-05T15:20:16.692Z" },
     { url = "https://files.pythonhosted.org/packages/66/37/f1dd40032f04606da68278697b3645e0d8a02e566c4f5b3d3baaa36e8ce1/pydantic_core-2.23.2-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:c57e493a0faea1e4c38f860d6862ba6832723396c884fbf938ff5e9b224200e2", size = 1918108, upload-time = "2024-09-05T15:20:19.089Z" },
+]
+
+[[package]]
+name = "pyserial"
+version = "3.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/7d/ae3f0a63f41e4d2f6cb66a5b57197850f919f59e558159a4dd3a818f5082/pyserial-3.5.tar.gz", hash = "sha256:3c77e014170dfffbd816e6ffc205e9842efb10be9f58ec16d3e8675b4925cddb", size = 159125, upload-time = "2020-11-23T03:59:15.045Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl", hash = "sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0", size = 90585, upload-time = "2020-11-23T03:59:13.41Z" },
 ]
 
 [[package]]
