@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.database import engine, Base, in_memory_db
@@ -10,6 +12,8 @@ logger = logging.getLogger(__name__)
 try:
     from gpiozero import Device
     from gpiozero.pins.lgpio import LGPIOFactory
+    
+    os.environ['GPIOZERO_PIN_FACTORY'] = 'lgpio'
     Device.pin_factory = LGPIOFactory()
     logger.info("✅ LGPIOFactory configurado")
 except:
