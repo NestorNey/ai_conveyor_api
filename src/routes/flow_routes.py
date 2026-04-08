@@ -32,7 +32,7 @@ def list_flows():
 @router.get("/reload/")
 def reload_flows():
     """Recargar los Flows disponibles"""
-    database.in_memory_db.load_flows()
+    database.in_memory_db.reload_flows()
     return {"message": "Flows recargados correctamente"}
 
 @router.get("/is_running/")
@@ -77,3 +77,13 @@ def stream():
         database.flow_running.get_flow().stream(),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
+
+@router.get("/stop", response_model=dict)
+def stop_flow():
+    if database.flow_running is None:
+        raise HTTPException(status_code=404, detail="No hay Flow")
+    
+    database.flow_running.stop()
+    # ESTO ES LO QUE TE FALTA:
+    database.flow_running = None  # Liberar la referencia para que Python limpie
+    return {"message": "Flow detenido correctamente"}
