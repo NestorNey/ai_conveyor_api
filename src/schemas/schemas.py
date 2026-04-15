@@ -1,14 +1,14 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 
 # ============== Servo Schemas ==============
 
 class ServoBase(BaseModel):
     """Schema base para Servo (propiedades en común)"""
     name: str = Field(..., min_length=1, max_length=100)
-    gpio: int = Field(..., ge=0, le=28)  # GPIO válidos en Raspberry Pi
-    min_pulse: int = Field(500, ge=100, le=1000)  # Valor mínimo de pulso en microsegundos
-    max_pulse: int = Field(2500, ge=2000, le=3000) # Valor máximo de pulso en microsegundos
+    pin: int = Field(..., ge=0, le=28)  # GPIO válidos en Raspberry Pi
+    min_pulse_width: float = Field(0.0005, ge=0.0001, le=0.001)  # Valor mínimo de pulso en microsegundos
+    max_pulse_width: float = Field(0.0025, ge=0.002, le=0.003) # Valor máximo de pulso en microsegundos
     is_active: Optional[bool] = True
 
 class ServoCreate(ServoBase):
@@ -18,9 +18,9 @@ class ServoCreate(ServoBase):
 class ServoUpdate(BaseModel):
     """Schema para actualizar un Servo"""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    gpio: Optional[int] = Field(None, ge=0, le=28)
-    min_pulse: Optional[int] = Field(None, ge=100, le=1000)
-    max_pulse: Optional[int] = Field(None, ge=2000, le=3000)
+    pin: Optional[int] = Field(None, ge=0, le=28)
+    min_pulse_width: Optional[float] = Field(None, ge=0.0001, le=0.001)
+    max_pulse_width: Optional[float] = Field(None, ge=0.002, le=0.003)
     is_active: Optional[bool] = None
 
 class ServoResponse(ServoBase):
@@ -36,9 +36,9 @@ class ServoResponse(ServoBase):
 class MotorReducerBase(BaseModel):
     """Schema base para Motor Reductor (propiedades en común)"""
     name: str = Field(..., min_length=1, max_length=100)
-    gpio_direction_1: int = Field(..., ge=0, le=28)
-    gpio_direction_2: int = Field(..., ge=0, le=28)
-    gpio_speed: int = Field(..., ge=0, le=28)
+    pin_in1: int = Field(..., ge=0, le=28)
+    pin_in2: int = Field(..., ge=0, le=28)
+    pin_ena: int = Field(..., ge=0, le=28)
     max_rpm: int = Field(200, ge=50, le=500)  # RPM máximo para conversión de velocidad
     is_active: Optional[bool] = True
 
@@ -109,3 +109,18 @@ class FlowSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     beautiful_name: str = Field(..., min_length=1, max_length=100)
     options_schema: Optional[dict] = None
+    
+class FlowPresetSchema(BaseModel):
+    """Esquema para guardar y recuperar presets de la DB"""
+    id: Optional[int] = None
+    name: str = Field(...)
+    flow_name: str = Field(...)
+    options: Dict[str, Any]  # Aquí vive el JSON gigante
+    is_default: bool = False
+
+    class Config:
+        from_attributes = True
+    
+class FlowPresetUpdate(BaseModel):
+    """Schema para actualizar un preset de Flow (solo opciones por ahora)"""
+    options: Dict[str, Any] = Field(..., description="Nueva configuración específica del Flow")

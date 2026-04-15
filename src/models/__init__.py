@@ -1,3 +1,3 @@
-from .models import Servo, MotorReducer, CameraPreset
+from .models import Servo, MotorReducer, CameraPreset, FlowPresetModel
 
-__all__ = ["Servo", "MotorReducer", "CameraPreset"]
+__all__ = ["Servo", "MotorReducer", "CameraPreset", "FlowPresetModel"]

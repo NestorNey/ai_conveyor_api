@@ -1,20 +1,18 @@
+import os
 import gc
 import logging
-import os
+import asyncio
 
 from src import database
+from settings import device_mapping
+from src.websocket.FlowStateWSManager import manager as flow_state_ws_manager
 
-from gpiozero import Servo, Device
+from gpiozero import Device
 from gpiozero.pins.lgpio import LGPIOFactory 
 
 from time import sleep
 
 from josneslib import Flow, FlowRunner
-from josneslib.devices import (
-    MotorL298N, Picamera2Wrapper, 
-    PicoI2CMotor, PicoI2CServo,
-    Esp32SerialMotor, Esp32SerialServo
-)
 
 logger = logging.getLogger(__name__)
 
@@ -40,70 +38,79 @@ class StartFlowUseCase:
 
     def execute(self) -> dict:
         """
-        Inicia el flow en background.
+        Inicia el flow en background de forma segura.
         """
-        
         try:
             logger.info(f"[StartFlowUseCase] Iniciando flow '{self.flow_name}'")
             
-            # Detener flow anterior si existe
+            # 1. Detener flow anterior si existe
             if database.flow_running is not None:
-                print("⚠️ Deteniendo flow anterior antes de iniciar uno nuevo...")
+                logger.warning("⚠️ Deteniendo flow anterior...")
                 database.flow_running.stop()
                 database.flow_running = None
-                sleep(1)
+                sleep(0.5) # Tiempo suficiente para liberar /dev/video0
                         
-            # Resetear pines GPIO para evitar conflictos
-            logger.debug("[StartFlowUseCase] Reseteando pines GPIO")
+            # 2. Limpieza de hardware
             _reset_gpio_pins()
             
-            # Mapeo de tipos a clases
-            device_map = {
-                "Servo": Servo,
-                "MotorL298N": MotorL298N,
-                "Picamera2": Picamera2Wrapper,  # ← Usa el wrapper con constructor compatible
-                "PicoI2CMotor": PicoI2CMotor,
-                "PicoI2CServo": PicoI2CServo,
-                "Esp32SerialMotor": Esp32SerialMotor,
-                "Esp32SerialServo": Esp32SerialServo
-            }
-            logger.debug(f"[StartFlowUseCase] Device map configurado: {list(device_map.keys())}")
+            # 3. Convertir diccionarios a instancias de dispositivos
+            converted_config = Flow.convert_options_to_instances(self.flow_options, device_mapping)
             
-            # Convertir diccionarios a instancias de dispositivos
-            logger.debug(f"[StartFlowUseCase] Convirtiendo opciones... {self.flow_options.keys()}")
-            converted_config = Flow.convert_options_to_instances(self.flow_options, device_map)
-            logger.debug(f"[StartFlowUseCase] Opciones convertidas: {converted_config.keys()}")
-            
-            # Obtener la clase del Flow
-            logger.debug(f"[StartFlowUseCase] Buscando flow '{self.flow_name}' en la BD")
+            # 4. Obtener la clase del Flow
             FlowClass = database.in_memory_db.get_flow(self.flow_name)
             if not FlowClass:
-                raise ValueError(f"Flow '{self.flow_name}' no encontrado en la base de datos")
-            logger.debug(f"[StartFlowUseCase] Flow encontrado: {FlowClass}")
+                raise ValueError(f"Flow '{self.flow_name}' no encontrado")
             
-            # Crear instancia del flow
-            logger.debug("[StartFlowUseCase] Creando instancia del Flow")
+            # 5. Crear instancia del flow
             flow_instance = FlowClass(converted_config)
-            logger.debug(f"[StartFlowUseCase] Flow instanciado: {flow_instance}")
             
-            # Crear runner
-            logger.debug("[StartFlowUseCase] Creando FlowRunner")
+            # --- EL ARREGLO DEL LOOP ---
+            # En lugar de buscar el loop en el hilo actual (que falla), 
+            # se lo pedimos al manager del WebSocket o lo buscamos globalmente.
+            
+            def socket_state_callback(payload):
+                # Intentamos obtener el loop donde vive el WebSocket
+                loop = None
+                try:
+                    # Si el manager ya guardó el loop al conectar, úsalo
+                    if hasattr(flow_state_ws_manager, 'loop') and flow_state_ws_manager.loop:
+                        loop = flow_state_ws_manager.loop
+                    else:
+                        # Si no, intenta pescar el loop principal
+                        loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    pass
+
+                if loop and loop.is_running():
+                    asyncio.run_coroutine_threadsafe(
+                        flow_state_ws_manager.broadcast(payload), 
+                        loop
+                    )
+                else:
+                    # Fallback por si el WS no está listo aún
+                    logger.debug(f"Socket no listo. Payload: {payload['state']}")
+
+            # Asignamos el callback seguro
+            flow_instance.set_state_callback(socket_state_callback)
+            
+            # 6. Crear runner e iniciar
             runner = FlowRunner(flow_instance)
-            
-            # Iniciar
-            logger.debug("[StartFlowUseCase] Iniciando runner en background")
             runner.start()
             
-            # Guardar globalmente
+            # 7. Guardar globalmente
             database.flow_running = runner
-            logger.info(f"[StartFlowUseCase] ✅ Flow '{self.flow_name}' iniciado exitosamente")
+            logger.info(f"[StartFlowUseCase] ✅ Flow '{self.flow_name}' ON")
             
             return {
                 "success": True,
-                "message": f"Flow '{self.flow_name}' iniciado exitosamente",
+                "message": f"Flow '{self.flow_name}' iniciado",
                 "flow_name": self.flow_name
             }
             
         except Exception as e:
-            logger.error(f"[StartFlowUseCase] ❌ Error al iniciar flow: {str(e)}", exc_info=True)
+            logger.error(f"[StartFlowUseCase] ❌ Error crítico: {str(e)}", exc_info=True)
+            # Limpieza en caso de error para no dejar la cámara trabada
+            if database.flow_running:
+                database.flow_running.stop()
+                database.flow_running = None
             raise

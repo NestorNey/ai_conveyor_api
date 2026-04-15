@@ -9,7 +9,7 @@ import os
 
 # Configuración de base de datos SQLite
 # La BD se crea en la raíz del proyecto
-DATABASE_URL = "sqlite:///./servos.db"
+DATABASE_URL = "sqlite:///./ai_conveyor.db"
 
 engine = create_engine(
     DATABASE_URL,
@@ -27,5 +27,5 @@ def get_db():
     finally:
         db.close()
 
-in_memory_db: ClassLoader = ClassLoader(database={}, path="/home/josnes/dev/prueba_cervos/flows")
+in_memory_db: ClassLoader = ClassLoader(database={}, path="/app/flows")
 flow_running: FlowRunner | None = None

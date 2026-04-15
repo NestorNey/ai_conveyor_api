@@ -3,7 +3,10 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.database import engine, Base, in_memory_db
-from src.routes import servo_router, motor_reducer_router, camera_preset_router, flow_router
+from src.routes import (
+    servo_router, motor_reducer_router, camera_preset_router, 
+    flow_router, devices_router, network_router
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -46,6 +49,8 @@ app.include_router(servo_router)
 app.include_router(motor_reducer_router)
 app.include_router(camera_preset_router)
 app.include_router(flow_router)
+app.include_router(devices_router)
+app.include_router(network_router)
 
 @app.get("/", tags=["root"])
 def read_root():
