@@ -1,58 +1,37 @@
-# Dockerfile para AI Conveyor API
-FROM python:3.11-slim-bullseye
+# Usamos una imagen de Python oficial
+FROM python:3.11-slim
+
+# Evitar que Python genere archivos .pyc y forzar logs en tiempo real
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Instalar dependencias de sistema necesarias para RPi.GPIO y compilación
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    libcamera-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar uv para manejar las dependencias rápido
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
-    libopenjp2-7 \
-    libtiff5 \
-    libjasper1 \
-    libharfbuzz0b \
-    libwebp6 \
-    libopenblas-dev \
-    libjasper-dev \
-    libatlas-base-dev \
-    libharfbuzz-dev \
-    libwebp-dev \
-    libtiff-dev \
-    libjasper-dev \
-    pkg-config \
-    cmake \
-    && rm -rf /var/lib/apt/lists/*
+# 1. Copiamos la LIBRERÍA e instalamos como paquete real (no editable)
+COPY ai_conveyor_lib /app/ai_conveyor_lib
+RUN uv pip install --system /app/ai_conveyor_lib
 
-# Instalar uv (gestor de paquetes Python rápido)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:${PATH}"
+# 2. Copiamos la API
+COPY ai_conveyor_api /app/ai_conveyor_api
+WORKDIR /app/ai_conveyor_api
 
-# Copiar archivos del proyecto
-COPY pyproject.toml uv.lock ./
-COPY src ./src
-COPY settings.py ./
-COPY requirements.txt ./
+# 3. Instalamos las dependencias de la API
+# Como ya instalamos josneslib arriba, uv detectará que ya está satisfecha
+RUN uv pip install --system .
 
-# Crear venv y instalar dependencias
-RUN /root/.cargo/bin/uv venv --python python3.11
-ENV PATH="/app/.venv/bin:$PATH"
-RUN /root/.cargo/bin/uv sync
-
-# Copiar los flows
-COPY flows ./flows
-
-# Crear directorio para db
-RUN mkdir -p /app/data
-
-# Exponer puerto
+# Exponer el puerto de FastAPI
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/docs', timeout=5)"
-
-# Comando para iniciar la API
-CMD ["/root/.cargo/bin/uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando de producción (sin --reload)
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
